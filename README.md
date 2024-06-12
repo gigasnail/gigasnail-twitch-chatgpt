@@ -1,133 +1,148 @@
-Your support means the world to me! :heart:
+# ChatGPT Twitch Bot Documentation
+
+**Important Notice: Cyclic is no longer supported for deployment. Please use Render for deploying this bot.**
+
+Your support means the world to me! ❤️
 
 ☕ [Buy me a coffee to support me](https://www.buymeacoffee.com/osetinhas) ☕
 
-# ChatGPT Twitch Bot
+Join our Discord community:
 
-This is a simple Node.js Chat bot with ChatGPT Integration based on the simplest possible nodejs api using express that responds to any request with: Yo!
-
-It considers a context file for every message so you can give it background information about your stream, your socials, your stream rewards, stream currency and so on. 
-
-You can choose if you want it to run in prompt mode (without context of previous messages) or in chat mode (with context of previous messages).
-
-# How to use
-
-## 1. Fork this on Github
-Login with your github account and fork this repository to get your own copy of it. 
+[https://discord.gg/pcxybrpDx6](https://discord.gg/pcxybrpDx6)
 
 ---
 
-## 2. Fill out your context file
-Open the file file_context.txt and write down all your background information for GPT. 
+## Overview
 
-The contents of this file will be sent every time somebody enters your chat command. This will increase the cost of every request with every word you put in, but can still be pretty lengthy. 
+This is a simple Node.js chatbot with ChatGPT integration, designed to work with Twitch streams. It uses the Express framework and can operate in two modes: chat mode (with context of previous messages) or prompt mode (without context of previous messages).
 
----
+## Features
 
-## 3. Create an openAI account
-Go to https://platform.openai.com and create an account. 
-
-Initially you will get a free contingent to use but later on you will have to pay for the server usage. 
-
-You can set a spending limit here: https://platform.openai.com/account/billing/limits
+- Responds to Twitch chat commands with ChatGPT-generated responses.
+- Can operate in chat mode with context or prompt mode without context.
+- Supports Text-to-Speech (TTS) for responses.
+- Customizable via environment variables.
+- Deployed on Render for 24/7 availability.
 
 ---
 
-## 4. Get your openAI Secure Key
-Go to https://platform.openai.com/account/api-keys
+## Setup Instructions
 
-Press "Create new secret key"
+### 1. Fork the Repository
 
-Save that secret key somewhere safe. 
+Login to GitHub and fork this repository to get your own copy.
 
-You will use this key to authorize your version of this chatbot with openai. 
-<strong>Treat this as the key to your wallet.</strong>
+### 2. Fill Out Your Context File
+
+Open `file_context.txt` and write down all your background information for GPT. This content will be included in every request.
+
+### 3. Create an OpenAI Account
+
+Create an account on [OpenAI](https://platform.openai.com) and set up billing limits if necessary.
+
+### 4. Get Your OpenAI API Key
+
+Generate an API key on the [API keys page](https://platform.openai.com/account/api-keys) and store it securely.
+
+### 5. Deploy on Render
+
+Render allows you to run your bot 24/7 for free. Follow these steps:
+
+#### 5.1. Deploy to Render
+
+Click the button below to deploy:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+#### 5.2. Login with GitHub
+
+Log in with your GitHub account and select your forked repository for deployment.
+
+### 6. Set Environment Variables
+
+Go to the variables/environment tab in your Render deployment and set the following variables:
+
+#### 6.1. Required Variables
+
+- `OPENAI_API_KEY`: Your OpenAI API key.
+
+#### 6.2. Optional Variables
+
+##### 6.2.1. Nightbot/Streamelements Integration Variable
+- `GPT_MODE`: (default: `CHAT`) Mode of operation, can be `CHAT` or `PROMPT`.
+
+##### 6.2.2. All Modes Variables
+- `HISTORY_LENGTH`: (default: `5`) Number of previous messages to include in context.
+- `MODEL_NAME`: (default: `gpt-3.5-turbo`) The OpenAI model to use. You can check the available models [here](https://platform.openai.com/docs/models/). 
+- `COMMAND_NAME`: (default: `!gpt`) The command that triggers the bot. You can set more than one command by separating them with a comma (e.g. `!gpt,!chatbot`).
+- `CHANNELS`: List of Twitch channels the bot will join (comma-separated). (e.g. `channel1,channel2`; do not include www.twitch.tv)
+- `SEND_USERNAME`: (default: `true`) Whether to include the username in the message sent to OpenAI.
+- `ENABLE_TTS`: (default: `false`) Whether to enable Text-to-Speech.
+- `ENABLE_CHANNEL_POINTS`: (default: `false`) Whether to enable channel points integration.
+- `COOLDOWN_DURATION`: (default: `10`) Cooldown duration in seconds between responses.
+
+#### 6.3. Twitch Integration Variables
+
+- `TWITCH_AUTH`: OAuth token for your Twitch bot.
+  - Go to https://twitchapps.com/tmi/ and click on Connect with Twitch
+  - Copy the token from the page and paste it in the TWITCH_AUTH variable  
+  - ⚠️ THIS TOKEN MIGHT EXPIRE AFTER A FEW DAYS, SO YOU MIGHT HAVE TO REPEAT THIS STEP EVERY FEW DAYS ⚠️
+
+### 7. Text-To-Speech (TTS) Setup
+
+Your Render URL (e.g., `https://your-twitch-bot.onrender.com/`) can be added as a widget to your stream for TTS integration.
 
 ---
 
-## 5. Deploy this repo on Cyclic for free
-Press the button to deploy this on Cyclic.
+## Usage
 
-[![Deploy to Cyclic](https://deploy.cyclic.app/button.svg)](https://deploy.cyclic.app/)
+### Commands
 
-Log in with your Github account there and select your twitch-chatgpt repository for deployment. 
+You can interact with the bot using Twitch chat commands. By default, the command is `!gpt`. You can change this in the environment variables.
 
-The standard cyclic account is free to use and only very big streams will run into issues with their request contingent.
+### Example
 
----
+To use the `!gpt` command:
 
-## 6. Set your environment variables
-Go to the variables tab in your deployment. 
-
-Create 3 new variables. The exact spelling of these variables is important:
-
-1. _**GPT_MODE**_
-  - (default: CHAT)
-  - Accepts one of 2 values:
-    - "CHAT" - Chat mode with history, cheaper than prompt mode but also faster. Uses gpt-3.5-turbo as model.
-    - "PROMPT" - Prompt mode, no history. Uses text-davinci-003 as model.
-
-2. _**HISTORY_LENGTH**_
-  - (default: 3)
-  - Accepts a number.
-  - Only works when GPT_MODE is CHAT
-  - Defines how many bot-user conversations will be saved and sent together with the most recent user message.
-  - This gives ChatGPT the ability to remember things and allow conversations instead of static prompts.
-
-3. _**OPENAI_API_KEY**_
-  - This is where you paste your openAI Secure Key.
-
-4. _**MODEL_NAME**_
-  - (default: gpt-3.5-turbo)
-  - Accepts one of 2 values:
-    - "gpt-3.5-turbo" - The default model. This is the fastest and cheapest model. It is also the least accurate.
-    - "text-davinci-003" - Most expensive model.
-    - "gpt-4" - Most accurate model and if you have the plan for it!
-
-Save the Changes.
-
----
-
-## 7. Get your API Link from Cyclic
-Copy the link cyclic provides for you. 
-
-You can find it in the top left corner below the title of your deployed repository.
-
----
-
-## 8. Add your API Command to your Chatbot
-Now it is time to build your Chat-Command. 
-
-
-### Streamelements
-Go to your Streamelements Dashboard -> Chatbot -> Commands -> Custom Commands.
-
-Create a new command.
-
-Enter the following in the response field:
+```twitch
+!gpt What is the weather today?
 ```
-$(urlfetch https://your-cyclic-url.app/gpt/"${user}:${queryescape ${1:}}")
+
+The bot will respond with an OpenAI-generated message.
+
+### Streamelements and Nightbot Integration
+
+#### Streamelements
+
+Create a custom command with the response:
+
+```twitch
+$(urlfetch https://your-render-url.onrender.com/gpt/"${user}:${queryescape ${1:}}")
 ```
-Replace "your-cyclic-url.app" with the url you copied in step 7
 
-Enjoy your command. 
+#### Nightbot
 
+Create a custom command with the response:
 
-### Nightbot
-Go to your commands page and add a new command.
-
-Enter the following in the message field:
-```bash
-$(urlfetch https://your-cyclic-url.app/gpt/"$(user):$(querystring)")
+```twitch
+!addcom !gptcmd $(urlfetch https://twitch-chatgpt-bot.onrender.com/gpt/$(user):$(querystring))
 ```
-Replace "your-cyclic-url.app" with the url you copied in step 7
 
-Enjoy your command. 
+Replace `your-render-url.onrender.com` with your actual Render URL.
+Replace `gptcmd` with your desired command name.
+Remove `$(user):` if you don't want to include the username in the message sent to OpenAI.
+---
 
-## Extra commands
+## Support
 
-### !continue
-Twitch has a 400 character limit on chat messages. 
-If you want to continue a conversation, you can use the !continue command.
+For any issues or questions, please join our [Discord community](https://discord.gg/pcxybrpDx6).
 
-$(urlfetch https://your-cyclic-url.app/continue")
+Thank you for using the ChatGPT Twitch Bot! Your support is greatly appreciated. ☕ [Buy me a coffee](https://www.buymeacoffee.com/osetinhas) ☕
+
+---
+
+### Important Notice
+
+**Cyclic is no longer supported for deployment. Please use Render for deploying this bot.**
+
+---
