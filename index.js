@@ -22,17 +22,36 @@ const GPT_MODE = process.env.GPT_MODE || 'CHAT';
 const HISTORY_LENGTH = process.env.HISTORY_LENGTH || 5;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const MODEL_NAME = process.env.MODEL_NAME || 'gpt-3.5-turbo';
-const TWITCH_USER = process.env.TWITCH_USER || 'gigab0t';
-const TWITCH_AUTH = process.env.TWITCH_AUTH || 'oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2';
+const TWITCH_USER = process.env.TWITCH_USER || '';
+const TWITCH_AUTH = process.env.TWITCH_AUTH || '';
 const COMMAND_NAME = process.env.COMMAND_NAME || '!gpt';
-const CHANNELS = process.env.CHANNELS || 'gigasnail';
+const CHANNELS = process.env.CHANNELS || '';
 const SEND_USERNAME = process.env.SEND_USERNAME || 'true';
 const ENABLE_TTS = process.env.ENABLE_TTS || 'false';
 const ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS || 'false';
 const COOLDOWN_DURATION = parseInt(process.env.COOLDOWN_DURATION, 10) || 10; // Cooldown duration in seconds
 
+// Validate required environment variables
 if (!OPENAI_API_KEY) {
-    console.error('No OPENAI_API_KEY found. Please set it as an environment variable.');
+    console.error('ERROR: OPENAI_API_KEY is required. Please set it as an environment variable.');
+}
+
+if (!TWITCH_USER) {
+    console.error('ERROR: TWITCH_USER is required. Please set it as an environment variable.');
+}
+
+if (!TWITCH_AUTH) {
+    console.error('ERROR: TWITCH_AUTH is required. Please set it as an environment variable.');
+    console.error('Generate a new OAuth token at: https://twitchapps.com/tmi/');
+}
+
+if (!CHANNELS) {
+    console.error('ERROR: CHANNELS is required. Please set it as an environment variable.');
+}
+
+if (!OPENAI_API_KEY || !TWITCH_USER || !TWITCH_AUTH || !CHANNELS) {
+    console.error('\nBot cannot start without required environment variables. Exiting...');
+    process.exit(1);
 }
 
 const commandNames = COMMAND_NAME.split(',').map(cmd => cmd.trim().toLowerCase());
