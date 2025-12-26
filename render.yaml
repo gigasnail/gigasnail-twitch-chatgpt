@@ -8,9 +8,9 @@ services:
     startCommand: npm start
     envVars:
       - key: OPENAI_API_KEY
-        value: <your-openai-api-key>
+        sync: false
       - key: CHANNELS
-        value: <your-twitch-channel>
+        sync: false
       - key: GPT_MODE
         value: "CHAT"
       - key: HISTORY_LENGTH
@@ -19,10 +19,16 @@ services:
         value: "gpt-3.5-turbo"
       - key: COMMAND_NAME
         value: "chat"
-      - key: TWITCH_USER  # https://dev.twitch.tv/console
-        value: "oSetinhasBot"
-      - key: TWITCH_AUTH  # https://twitchapps.com/tmi/
-        value: "oauth:9wh6ujbu2mro28zhbl8z6z921iuyxz"
+      - key: TWITCH_USER  # Your bot's Twitch username
+        sync: false
+      - key: TWITCH_CLIENT_ID  # From Twitch Developer Console (for production OAuth)
+        sync: false
+      - key: TWITCH_CLIENT_SECRET  # From Twitch Developer Console (for production OAuth)
+        sync: false
+      - key: TWITCH_REDIRECT_URI  # Your Render URL + /auth/twitch/callback
+        value: "https://your-app-name.onrender.com/auth/twitch/callback"
+      - key: TWITCH_AUTH  # Legacy method - use OAuth above for production
+        sync: false
       - key: SEND_USERNAME
         value: "true"
       - key: ENABLE_TTS

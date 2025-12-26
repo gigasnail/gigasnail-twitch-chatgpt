@@ -5,10 +5,10 @@ import expressWs from 'express-ws';
 import {job} from './keep_alive.js';
 import {OpenAIOperations} from './openai_operations.js';
 import {TwitchBot} from './twitch_bot.js';
+import {TwitchOAuth} from './twitch_oauth.js';
 
 // Start keep alive cron job
 job.start();
-console.log(process.env);
 
 // Setup express app
 const app = express();
@@ -22,17 +22,57 @@ const GPT_MODE = process.env.GPT_MODE || 'CHAT';
 const HISTORY_LENGTH = process.env.HISTORY_LENGTH || 5;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const MODEL_NAME = process.env.MODEL_NAME || 'gpt-3.5-turbo';
-const TWITCH_USER = process.env.TWITCH_USER || 'gigab0t';
-const TWITCH_AUTH = process.env.TWITCH_AUTH || 'oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2';
+const TWITCH_USER = process.env.TWITCH_USER || '';
+const TWITCH_AUTH = process.env.TWITCH_AUTH || '';
 const COMMAND_NAME = process.env.COMMAND_NAME || '!gpt';
-const CHANNELS = process.env.CHANNELS || 'gigasnail';
+const CHANNELS = process.env.CHANNELS || '';
 const SEND_USERNAME = process.env.SEND_USERNAME || 'true';
 const ENABLE_TTS = process.env.ENABLE_TTS || 'false';
 const ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS || 'false';
 const COOLDOWN_DURATION = parseInt(process.env.COOLDOWN_DURATION, 10) || 10; // Cooldown duration in seconds
 
+// Twitch OAuth Configuration (for automatic token refresh)
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '';
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '';
+const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'http://localhost:3000/auth/twitch/callback';
+const TWITCH_REFRESH_TOKEN = process.env.TWITCH_REFRESH_TOKEN || '';
+
+// Validate required environment variables
 if (!OPENAI_API_KEY) {
-    console.error('No OPENAI_API_KEY found. Please set it as an environment variable.');
+    console.error('ERROR: OPENAI_API_KEY is required. Please set it as an environment variable.');
+    process.exit(1);
+}
+
+if (!TWITCH_USER) {
+    console.error('ERROR: TWITCH_USER is required. Please set it as an environment variable.');
+    process.exit(1);
+}
+
+if (!CHANNELS) {
+    console.error('ERROR: CHANNELS is required. Please set it as an environment variable.');
+    process.exit(1);
+}
+
+// Check if using OAuth or legacy auth method
+const useOAuth = TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET;
+if (!useOAuth && !TWITCH_AUTH) {
+    console.error('ERROR: Either TWITCH_AUTH (legacy) or TWITCH_CLIENT_ID + TWITCH_CLIENT_SECRET (OAuth) is required.');
+    console.error('For production 24/7 bot, use OAuth with automatic token refresh.');
+    process.exit(1);
+}
+
+// Initialize OAuth manager if using OAuth
+let oauthManager = null;
+if (useOAuth) {
+    console.log('Using OAuth with automatic token refresh');
+    oauthManager = new TwitchOAuth(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI);
+
+    // If refresh token is provided, set it
+    if (TWITCH_REFRESH_TOKEN) {
+        oauthManager.setRefreshToken(TWITCH_REFRESH_TOKEN);
+    }
+} else {
+    console.log('Using legacy TWITCH_AUTH token (not recommended for production)');
 }
 
 const commandNames = COMMAND_NAME.split(',').map(cmd => cmd.trim().toLowerCase());
@@ -42,38 +82,45 @@ let fileContext = 'You are a helpful Twitch Chatbot.';
 let lastUserMessage = '';
 let lastResponseTime = 0; // Track the last response time
 
-// Setup Twitch bot
-console.log('Channels: ', channels);
-const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, channels, OPENAI_API_KEY, ENABLE_TTS);
+// Global bot instance
+let bot = null;
+let openaiOps = null;
 
-// Setup OpenAI operations
-fileContext = fs.readFileSync('./file_context.txt', 'utf8');
-const openaiOps = new OpenAIOperations(fileContext, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
+// Initialize and connect bot
+async function initializeBot() {
+    try {
+        let authToken = TWITCH_AUTH;
 
-// Setup Twitch bot callbacks
-bot.onConnected((addr, port) => {
-    console.log(`* Connected to ${addr}:${port}`);
-    channels.forEach(channel => {
-        console.log(`* Joining ${channel}`);
-        console.log(`* Saying hello in ${channel}`);
-    });
-});
+        // If using OAuth, get a valid token
+        if (useOAuth && oauthManager) {
+            console.log('Getting valid OAuth token...');
+            authToken = await oauthManager.getValidToken();
+            console.log('OAuth token obtained successfully');
+        }
 
-bot.onDisconnected(reason => {
-    console.log(`Disconnected: ${reason}`);
-});
+        // Setup Twitch bot
+        console.log('Channels: ', channels);
+        bot = new TwitchBot(TWITCH_USER, authToken, channels, OPENAI_API_KEY, ENABLE_TTS);
 
-// Connect bot
-bot.connect(
-    () => {
-        console.log('Bot connected!');
-    },
-    error => {
-        console.error('Bot couldn\'t connect!', error);
-    }
-);
+        // Setup OpenAI operations
+        fileContext = fs.readFileSync('./file_context.txt', 'utf8');
+        openaiOps = new OpenAIOperations(fileContext, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
 
-bot.onMessage(async (channel, user, message, self) => {
+        // Setup Twitch bot callbacks
+        bot.onConnected((addr, port) => {
+            console.log(`* Connected to ${addr}:${port}`);
+            channels.forEach(channel => {
+                console.log(`* Joining ${channel}`);
+                console.log(`* Saying hello in ${channel}`);
+            });
+        });
+
+        bot.onDisconnected(reason => {
+            console.log(`Disconnected: ${reason}`);
+        });
+
+        // Setup message handler
+        bot.onMessage(async (channel, user, message, self) => {
     if (self) return;
 
     const currentTime = Date.now();
@@ -125,6 +172,70 @@ bot.onMessage(async (channel, user, message, self) => {
             }
         }
     }
+        });
+
+        // Connect bot
+        bot.connect(
+            () => {
+                console.log('Bot connected!');
+            },
+            error => {
+                console.error('Bot couldn\'t connect!', error);
+            }
+        );
+
+        return true;
+    } catch (error) {
+        console.error('Error initializing bot:', error);
+
+        // If OAuth error, user may need to authorize
+        if (useOAuth) {
+            console.log('\n==============================================');
+            console.log('OAuth Authorization Required!');
+            console.log('Please visit: http://localhost:3000/auth/twitch');
+            console.log('==============================================\n');
+        }
+
+        return false;
+    }
+}
+
+// OAuth routes
+app.get('/auth/twitch', (req, res) => {
+    if (!useOAuth || !oauthManager) {
+        return res.send('OAuth not configured. Please set TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET.');
+    }
+
+    const authUrl = oauthManager.getAuthorizationUrl();
+    res.redirect(authUrl);
+});
+
+app.get('/auth/twitch/callback', async (req, res) => {
+    if (!useOAuth || !oauthManager) {
+        return res.send('OAuth not configured.');
+    }
+
+    const code = req.query.code;
+    if (!code) {
+        return res.send('No authorization code provided.');
+    }
+
+    try {
+        await oauthManager.getTokensFromCode(code);
+        res.send(`
+            <h1>Authorization Successful!</h1>
+            <p>Your bot is now authorized. You can close this window and restart your bot.</p>
+            <p>The tokens have been saved to .twitch_tokens.json</p>
+            <p><strong>Important:</strong> Keep this file secure and do not commit it to version control!</p>
+        `);
+
+        // Initialize bot now that we have tokens
+        console.log('Initializing bot with new OAuth tokens...');
+        await initializeBot();
+    } catch (error) {
+        console.error('Error during OAuth callback:', error);
+        res.send(`<h1>Authorization Failed</h1><p>${error.message}</p>`);
+    }
 });
 
 app.ws('/check-for-updates', (ws, req) => {
@@ -136,7 +247,6 @@ app.ws('/check-for-updates', (ws, req) => {
 const messages = [{role: 'system', content: 'You are a helpful Twitch Chatbot.'}];
 console.log('GPT_MODE:', GPT_MODE);
 console.log('History length:', HISTORY_LENGTH);
-console.log('OpenAI API Key:', OPENAI_API_KEY);
 console.log('Model Name:', MODEL_NAME);
 
 app.use(express.json({extended: true, limit: '1mb'}));
@@ -182,8 +292,12 @@ app.get('/gpt/:text', async (req, res) => {
     }
 });
 
-const server = app.listen(3000, () => {
+const server = app.listen(3000, async () => {
     console.log('Server running on port 3000');
+
+    // Initialize the bot
+    console.log('Initializing Twitch bot...');
+    await initializeBot();
 });
 
 const wss = expressWsInstance.getWss();
