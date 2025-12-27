@@ -59,6 +59,122 @@
                     </div>
                 </div>
 
+                <!-- Auto-Chat Control Panel -->
+                <div class="control-panel">
+                    <h3 class="control-panel-title">Bot Controls</h3>
+
+                    <!-- Master Bot Toggle -->
+                    <div class="control-item" style="border-bottom: 2px solid #8b5cf6; margin-bottom: 1rem; padding-bottom: 1rem;">
+                        <div class="control-info">
+                            <div class="control-label" style="font-size: 1.1em; font-weight: 700;">Master Bot Control</div>
+                            <div class="control-description">Turn bot ON/OFF (standby mode when off)</div>
+                            <div class="control-stats" id="botStats">
+                                <span id="botStatus">-</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="botToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-label">Auto-Chat Mode</div>
+                            <div class="control-description">Bot chimes into conversations naturally</div>
+                            <div class="control-stats" id="autoChatStats">
+                                <span id="messageCount">-</span> messages ·
+                                <span id="lastResponse">-</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoChatToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-label">AFK Mode</div>
+                            <div class="control-description">Bot tells stories and answers questions while you're away</div>
+                            <div class="control-stats" id="afkModeStats">
+                                <span id="afkStatus">-</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="afkModeToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-label">Streamer Mention Detection</div>
+                            <div class="control-description">Bot responds when Gigasnail is mentioned</div>
+                            <div class="control-stats" id="streamerMentionStats">
+                                Watching for: <span id="streamerNames">-</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="streamerMentionToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-label">Topic Tracking</div>
+                            <div class="control-description">Bot tracks conversation topics</div>
+                            <div class="control-stats" id="topicTrackingStats">
+                                Topics: <span id="currentTopics">None</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="topicTrackingToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-label">Hype Mode</div>
+                            <div class="control-description">Bot amplifies hype with chat commands</div>
+                            <div class="control-stats" id="hypeModeStats">
+                                <span id="hypeStatus">-</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hypeModeToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-item">
+                        <div class="control-info">
+                            <div class="control-label">Emoji React Mode</div>
+                            <div class="control-description">Bot responds with Twitch emojis when users use emojis (15% chance)</div>
+                            <div class="control-stats" id="emojiReactStats">
+                                <span id="emojiReactStatus">-</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="emojiReactToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- OAuth Re-authorization Section -->
+                    <div class="control-item" style="border-top: 2px solid #8b5cf6; margin-top: 1rem; padding-top: 1rem;">
+                        <div class="control-info">
+                            <div class="control-label">Twitch OAuth Re-authorization</div>
+                            <div class="control-description">Click to re-authorize with Twitch when tokens expire</div>
+                        </div>
+                        <button id="reauthorizeBtn" class="reauth-button">
+                            Re-authorize
+                        </button>
+                    </div>
+                </div>
+
                 <!-- TTS Audio Player (hidden by default) -->
                 <div class="audio-section" id="audioSection" style="display: none;">
                     <h3 class="audio-title">Text-to-Speech Player</h3>
@@ -113,8 +229,419 @@
             });
         }
 
+        // Auto-chat control functions
+        async function fetchAutoChatStatus() {
+            try {
+                const response = await fetch('/api/auto-chat/status');
+                const status = await response.json();
+
+                // Update toggle
+                const toggle = document.getElementById('autoChatToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                // Update stats
+                const messageCount = document.getElementById('messageCount');
+                const lastResponse = document.getElementById('lastResponse');
+
+                if (messageCount) {
+                    messageCount.textContent = `${status.messages_since_last} messages since last response`;
+                }
+
+                if (lastResponse && status.seconds_since_last !== null) {
+                    if (status.seconds_since_last < 60) {
+                        lastResponse.textContent = `${status.seconds_since_last}s ago`;
+                    } else if (status.seconds_since_last < 3600) {
+                        lastResponse.textContent = `${Math.floor(status.seconds_since_last / 60)}m ago`;
+                    } else {
+                        lastResponse.textContent = `${Math.floor(status.seconds_since_last / 3600)}h ago`;
+                    }
+                } else if (lastResponse) {
+                    lastResponse.textContent = 'Never responded';
+                }
+            } catch (error) {
+                console.error('Error fetching auto-chat status:', error);
+            }
+        }
+
+        async function toggleAutoChat(enabled) {
+            try {
+                const response = await fetch('/api/auto-chat/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('Auto-chat toggled:', result);
+
+                // Update stats immediately
+                await fetchAutoChatStatus();
+            } catch (error) {
+                console.error('Error toggling auto-chat:', error);
+                // Revert toggle on error
+                const toggle = document.getElementById('autoChatToggle');
+                if (toggle) {
+                    toggle.checked = !enabled;
+                }
+            }
+        }
+
+        // Initialize auto-chat controls
+        function initAutoChat() {
+            const toggle = document.getElementById('autoChatToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => {
+                    toggleAutoChat(e.target.checked);
+                });
+            }
+
+            // Fetch initial status
+            fetchAutoChatStatus();
+
+            // Update status every 5 seconds
+            setInterval(fetchAutoChatStatus, 5000);
+        }
+
+        // AFK Mode control functions
+        async function fetchAfkModeStatus() {
+            try {
+                const response = await fetch('/api/afk-mode/status');
+                const status = await response.json();
+
+                const toggle = document.getElementById('afkModeToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                const afkStatus = document.getElementById('afkStatus');
+                if (afkStatus) {
+                    if (status.seconds_since_last_story && status.seconds_since_last_story < 300) {
+                        afkStatus.textContent = `Last story: ${Math.floor(status.seconds_since_last_story / 60)}m ago`;
+                    } else {
+                        afkStatus.textContent = status.enabled ? 'Ready to entertain' : 'Disabled';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching AFK mode status:', error);
+            }
+        }
+
+        async function toggleAfkMode(enabled) {
+            try {
+                const response = await fetch('/api/afk-mode/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('AFK mode toggled:', result);
+                await fetchAfkModeStatus();
+            } catch (error) {
+                console.error('Error toggling AFK mode:', error);
+                const toggle = document.getElementById('afkModeToggle');
+                if (toggle) toggle.checked = !enabled;
+            }
+        }
+
+        function initAfkMode() {
+            const toggle = document.getElementById('afkModeToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => toggleAfkMode(e.target.checked));
+            }
+            fetchAfkModeStatus();
+            setInterval(fetchAfkModeStatus, 10000);
+        }
+
+        // Streamer Mention control functions
+        async function fetchStreamerMentionStatus() {
+            try {
+                const response = await fetch('/api/streamer-mention/status');
+                const status = await response.json();
+
+                const toggle = document.getElementById('streamerMentionToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                const streamerNames = document.getElementById('streamerNames');
+                if (streamerNames) {
+                    streamerNames.textContent = status.streamer_names.join(', ');
+                }
+            } catch (error) {
+                console.error('Error fetching streamer mention status:', error);
+            }
+        }
+
+        async function toggleStreamerMention(enabled) {
+            try {
+                const response = await fetch('/api/streamer-mention/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('Streamer mention toggled:', result);
+                await fetchStreamerMentionStatus();
+            } catch (error) {
+                console.error('Error toggling streamer mention:', error);
+                const toggle = document.getElementById('streamerMentionToggle');
+                if (toggle) toggle.checked = !enabled;
+            }
+        }
+
+        function initStreamerMention() {
+            const toggle = document.getElementById('streamerMentionToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => toggleStreamerMention(e.target.checked));
+            }
+            fetchStreamerMentionStatus();
+        }
+
+        // Topic Tracking control functions
+        async function fetchTopicTrackingStatus() {
+            try {
+                const response = await fetch('/api/topic-tracking/status');
+                const status = await response.json();
+
+                const toggle = document.getElementById('topicTrackingToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                const currentTopics = document.getElementById('currentTopics');
+                if (currentTopics) {
+                    if (status.current_topics && status.current_topics.length > 0) {
+                        currentTopics.textContent = status.current_topics.join(', ');
+                    } else {
+                        currentTopics.textContent = 'None';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching topic tracking status:', error);
+            }
+        }
+
+        async function toggleTopicTracking(enabled) {
+            try {
+                const response = await fetch('/api/topic-tracking/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('Topic tracking toggled:', result);
+                await fetchTopicTrackingStatus();
+            } catch (error) {
+                console.error('Error toggling topic tracking:', error);
+                const toggle = document.getElementById('topicTrackingToggle');
+                if (toggle) toggle.checked = !enabled;
+            }
+        }
+
+        function initTopicTracking() {
+            const toggle = document.getElementById('topicTrackingToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => toggleTopicTracking(e.target.checked));
+            }
+            fetchTopicTrackingStatus();
+            setInterval(fetchTopicTrackingStatus, 15000);
+        }
+
+        // Hype Mode control functions
+        async function fetchHypeModeStatus() {
+            try {
+                const response = await fetch('/api/hype-mode/status');
+                const status = await response.json();
+
+                const toggle = document.getElementById('hypeModeToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                const hypeStatus = document.getElementById('hypeStatus');
+                if (hypeStatus) {
+                    if (status.seconds_since_last && status.seconds_since_last < 30) {
+                        hypeStatus.textContent = `Last hype: ${status.seconds_since_last}s ago`;
+                    } else {
+                        hypeStatus.textContent = status.enabled ? 'Ready to hype' : 'Disabled';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching hype mode status:', error);
+            }
+        }
+
+        async function toggleHypeMode(enabled) {
+            try {
+                const response = await fetch('/api/hype-mode/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('Hype mode toggled:', result);
+                await fetchHypeModeStatus();
+            } catch (error) {
+                console.error('Error toggling hype mode:', error);
+                const toggle = document.getElementById('hypeModeToggle');
+                if (toggle) toggle.checked = !enabled;
+            }
+        }
+
+        function initHypeMode() {
+            const toggle = document.getElementById('hypeModeToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => toggleHypeMode(e.target.checked));
+            }
+            fetchHypeModeStatus();
+            setInterval(fetchHypeModeStatus, 5000);
+        }
+
+        // Emoji React Mode control functions
+        async function fetchEmojiReactStatus() {
+            try {
+                const response = await fetch('/api/emoji-react/status');
+                const status = await response.json();
+
+                const toggle = document.getElementById('emojiReactToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                const emojiReactStatus = document.getElementById('emojiReactStatus');
+                if (emojiReactStatus) {
+                    if (status.seconds_since_last && status.seconds_since_last < 30) {
+                        emojiReactStatus.textContent = `Last react: ${status.seconds_since_last}s ago`;
+                    } else {
+                        emojiReactStatus.textContent = status.enabled ? 'Ready to react' : 'Disabled';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching emoji react status:', error);
+            }
+        }
+
+        async function toggleEmojiReact(enabled) {
+            try {
+                const response = await fetch('/api/emoji-react/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('Emoji react toggled:', result);
+                await fetchEmojiReactStatus();
+            } catch (error) {
+                console.error('Error toggling emoji react:', error);
+                const toggle = document.getElementById('emojiReactToggle');
+                if (toggle) toggle.checked = !enabled;
+            }
+        }
+
+        function initEmojiReact() {
+            const toggle = document.getElementById('emojiReactToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => toggleEmojiReact(e.target.checked));
+            }
+            fetchEmojiReactStatus();
+            setInterval(fetchEmojiReactStatus, 5000);
+        }
+
+        // Master Bot Control functions
+        async function fetchBotStatus() {
+            try {
+                const response = await fetch('/api/bot/status');
+                const status = await response.json();
+
+                const toggle = document.getElementById('botToggle');
+                if (toggle) {
+                    toggle.checked = status.enabled;
+                }
+
+                const botStatus = document.getElementById('botStatus');
+                if (botStatus) {
+                    botStatus.textContent = status.enabled ? 'Bot is ACTIVE' : 'Bot is in STANDBY mode';
+                    botStatus.style.color = status.enabled ? '#10b981' : '#ef4444';
+                    botStatus.style.fontWeight = '600';
+                }
+            } catch (error) {
+                console.error('Error fetching bot status:', error);
+            }
+        }
+
+        async function toggleBot(enabled) {
+            try {
+                const response = await fetch('/api/bot/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                console.log('Bot toggled:', result);
+                await fetchBotStatus();
+            } catch (error) {
+                console.error('Error toggling bot:', error);
+                const toggle = document.getElementById('botToggle');
+                if (toggle) toggle.checked = !enabled;
+            }
+        }
+
+        function initBot() {
+            const toggle = document.getElementById('botToggle');
+            if (toggle) {
+                toggle.addEventListener('change', (e) => toggleBot(e.target.checked));
+            }
+            fetchBotStatus();
+            setInterval(fetchBotStatus, 5000);
+        }
+
+        // OAuth Re-authorization function
+        async function handleReauthorize() {
+            try {
+                const response = await fetch('/api/oauth/auth-url');
+                const data = await response.json();
+
+                if (data.auth_url) {
+                    // Open in new window
+                    window.open(data.auth_url, '_blank');
+                } else {
+                    alert('OAuth not configured. Please check TWITCH_CLIENT_ID in .env file.');
+                }
+            } catch (error) {
+                console.error('Error getting auth URL:', error);
+                alert('Failed to get authorization URL');
+            }
+        }
+
+        function initReauthorize() {
+            const reauthorizeBtn = document.getElementById('reauthorizeBtn');
+            if (reauthorizeBtn) {
+                reauthorizeBtn.addEventListener('click', handleReauthorize);
+            }
+        }
+
         // Call checkForUpdates when the DOM is fully loaded
-        document.addEventListener("DOMContentLoaded", checkForUpdates);
+        document.addEventListener("DOMContentLoaded", () => {
+            checkForUpdates();
+            initBot();
+            initAutoChat();
+            initAfkMode();
+            initStreamerMention();
+            initTopicTracking();
+            initHypeMode();
+            initEmojiReact();
+            initReauthorize();
+        });
     </script>
 
     <style>
@@ -248,6 +775,143 @@
             border-radius: 0.5rem;
         }
 
+        /* Control Panel Styles */
+        .control-panel {
+            margin-top: 4rem;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .control-panel-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-item:hover {
+            border-color: var(--accent-purple);
+        }
+
+        .control-info {
+            flex: 1;
+        }
+
+        .control-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .control-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .control-stats {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-left: 1rem;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-primary);
+            border: 2px solid var(--border);
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--text-secondary);
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-green) 100%);
+            border-color: var(--accent-purple);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+            background-color: white;
+        }
+
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.3);
+        }
+
+        /* Re-authorize Button Styles */
+        .reauth-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-green) 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .reauth-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(145, 71, 255, 0.4);
+        }
+
+        .reauth-button:active {
+            transform: translateY(0);
+        }
+
         @media (max-width: 768px) {
             .hero-title {
                 font-size: 2.5rem;
@@ -259,6 +923,16 @@
 
             .features-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .control-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .toggle-switch {
+                margin-left: 0;
             }
         }
     </style>

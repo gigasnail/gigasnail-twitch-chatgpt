@@ -1,28 +1,46 @@
-# ChatGPT Twitch Bot Documentation
+# gigarob0t - Advanced AI Twitch Chatbot
 
 **Important Notice: Cyclic is no longer supported for deployment. Please use Render for deploying this bot.**
 
-Your support means the world to me! ❤️
+Your support means the world to Gigasnail! ❤️
 
-☕ [Buy me a coffee to support me](https://www.buymeacoffee.com/osetinhas) ☕
-
-Join our Discord community:
-
-[https://discord.gg/pcxybrpDx6](https://discord.gg/pcxybrpDx6)
+☕ [Support Gigasnail](https://www.twitch.tv/gigasnail) ☕
 
 ---
 
 ## Overview
 
-This is a simple Node.js chatbot with ChatGPT integration, designed to work with Twitch streams. It uses the Express framework and can operate in two modes: chat mode (with context of previous messages) or prompt mode (without context of previous messages).
+gigarob0t is an **advanced Node.js chatbot** with ChatGPT integration, designed specifically for Twitch streams. Built with Express.js and featuring automatic OAuth token refresh, it provides intelligent, context-aware chat interactions with a powerful web dashboard for real-time control.
 
-## Features
+### Advanced Features
 
-- Responds to Twitch chat commands with ChatGPT-generated responses.
-- Can operate in chat mode with context or prompt mode without context.
-- Supports Text-to-Speech (TTS) for responses.
-- Customizable via environment variables.
-- Deployed on Render for 24/7 availability.
+- **🤖 AI-Powered Responses** - ChatGPT integration for intelligent conversations
+- **🎛️ Master On/Off Toggle** - Standby mode for when stream is offline
+- **💬 Auto-Chat Mode** - Bot naturally joins conversations based on context
+- **😴 AFK Mode** - Tells stories and answers questions while streamer is away
+- **📢 Streamer Mention Detection** - Automatically responds when streamer is mentioned
+- **📊 Topic Tracking** - Tracks and participates in relevant conversation topics
+- **🎉 Hype Mode** - Amplifies chat hype with command responses
+- **😂 Emoji React Mode** - Responds with Twitch emojis when users use emojis
+- **🔐 One-Click OAuth Re-authorization** - Easy token refresh via web UI
+- **🌐 Web Dashboard** - Real-time control panel at localhost:3000
+- **🔄 Automatic Token Refresh** - 24/7 uptime with no manual intervention
+- **🎤 Text-to-Speech (TTS)** - Voice responses for chat messages
+- **📝 Context Memory** - Maintains conversation history for natural interactions
+
+---
+
+## Web Dashboard
+
+The bot includes a beautiful web interface accessible at `http://localhost:3000` (or your Render URL) with:
+
+- **Master Bot Control** - Turn bot on/off without disconnecting
+- **Feature Toggles** - Enable/disable any feature in real-time
+- **Status Monitoring** - Live stats for all bot features
+- **OAuth Re-authorization** - One-click button to re-authorize with Twitch
+- **Gigasnail Branding** - Dark mode UI with purple/green gradient theme
+
+All features can be toggled on/off through the web dashboard without restarting the bot!
 
 ---
 
@@ -65,7 +83,8 @@ If you want to run the bot locally:
 2. Edit `.env` and fill in your actual values:
    - `OPENAI_API_KEY`: Your OpenAI API key from https://platform.openai.com/account/api-keys
    - `TWITCH_USER`: Your bot's Twitch username
-   - `TWITCH_AUTH`: Your OAuth token (see "Getting Twitch OAuth Token" in section 7.1 below)
+   - `TWITCH_CLIENT_ID`: Your Twitch application Client ID
+   - `TWITCH_CLIENT_SECRET`: Your Twitch application Client Secret
    - `CHANNELS`: Comma-separated list of channels to join
 
 3. Install dependencies:
@@ -77,6 +96,8 @@ If you want to run the bot locally:
    ```bash
    npm start
    ```
+
+5. Access the web dashboard at `http://localhost:3000`
 
 **Note:** The `.env` file is gitignored and will never be committed to version control.
 
@@ -146,10 +167,16 @@ Render will automatically redeploy with the new OAuth configuration.
 
 **Step 4: Authorize the Bot**
 
+Option A - Web Dashboard (Easiest):
+1. Visit your bot's web dashboard: `https://YOUR-ACTUAL-RENDER-URL.onrender.com`
+2. Click the "Re-authorize" button at the bottom of the control panel
+3. Log in with the Twitch account you want the bot to use (e.g., gigarob0t)
+4. Click "Authorize"
+5. Done! The bot will automatically refresh tokens and run 24/7
+
+Option B - Direct URL:
 1. Visit: `https://YOUR-ACTUAL-RENDER-URL.onrender.com/auth/twitch`
-2. Log in with the Twitch account you want the bot to use (e.g., gigarob0t)
-3. Click "Authorize"
-4. Done! The bot will automatically refresh tokens and run 24/7
+2. Log in and authorize
 
 **You can now remove `TWITCH_AUTH` from Render - the bot uses OAuth exclusively!**
 
@@ -170,12 +197,46 @@ For local testing only (tokens expire after a few hours):
 
 3. Set `TWITCH_AUTH` environment variable
 
-#### 7.2. Optional Variables
+#### 7.2. Feature Configuration
 
-##### 7.2.1. Nightbot/Streamelements Integration Variable
+All features can be enabled/disabled via environment variables or the web dashboard:
+
+##### Auto-Chat Configuration
+- `ENABLE_AUTO_CHAT`: (default: `true`) Bot chimes into conversations naturally
+- `AUTO_CHAT_COOLDOWN`: (default: `300`) Seconds between auto-chat responses
+- `AUTO_CHAT_PROBABILITY`: (default: `0.15`) Chance to respond (15%)
+- `AUTO_CHAT_MIN_MESSAGES`: (default: `5`) Minimum messages before auto-chat
+
+##### AFK Mode Configuration
+- `ENABLE_AFK_MODE`: (default: `false`) Bot tells stories while streamer is away
+- `AFK_STORY_INTERVAL`: (default: `180`) Seconds between stories
+- `AFK_MIN_SILENCE`: (default: `60`) Seconds of silence before activating
+
+##### Streamer Mention Detection
+- `ENABLE_STREAMER_MENTION`: (default: `true`) Respond when streamer is mentioned
+- `STREAMER_NAMES`: (default: `gigasnail,giga`) Comma-separated streamer names
+
+##### Topic Tracking
+- `ENABLE_TOPIC_TRACKING`: (default: `true`) Track conversation topics
+
+##### Hype Mode
+- `ENABLE_HYPE_MODE`: (default: `false`) Amplify hype with commands
+- `HYPE_COMMANDS`: (default: `!hype,!riot,!riot2,...`) Comma-separated hype commands
+
+##### Emoji React Mode
+- `ENABLE_EMOJI_REACT`: (default: `false`) React with Twitch emojis
+- `EMOJI_REACT_PROBABILITY`: (default: `0.15`) Chance to react (15%)
+- `EMOJI_REACT_COOLDOWN`: (default: `10`) Seconds between reactions
+
+##### Master Bot Control
+- `BOT_ENABLED`: (default: `true`) Master on/off switch for all bot activity
+
+#### 7.3. Optional Variables
+
+##### 7.3.1. Nightbot/Streamelements Integration Variable
 - `GPT_MODE`: (default: `CHAT`) Mode of operation, can be `CHAT` or `PROMPT`.
 
-##### 7.2.2. All Modes Variables
+##### 7.3.2. All Modes Variables
 - `HISTORY_LENGTH`: (default: `5`) Number of previous messages to include in context.
 - `MODEL_NAME`: (default: `gpt-3.5-turbo`) The OpenAI model to use. You can check the available models [here](https://platform.openai.com/docs/models/).
 - `COMMAND_NAME`: (default: `!gpt`) The command that triggers the bot. You can set more than one command by separating them with a comma (e.g. `!gpt,!chatbot`).
@@ -194,6 +255,14 @@ Your Render URL (e.g., `https://your-twitch-bot.onrender.com/`) can be added as 
 
 ## Usage
 
+### Web Dashboard Control
+
+Access the web dashboard at your bot's URL to:
+- Toggle the master bot on/off switch
+- Enable/disable individual features
+- Monitor real-time statistics
+- Re-authorize with Twitch when needed
+
 ### Commands
 
 You can interact with the bot using Twitch chat commands. By default, the command is `!gpt`. You can change this in the environment variables.
@@ -207,6 +276,15 @@ To use the `!gpt` command:
 ```
 
 The bot will respond with an OpenAI-generated message.
+
+### Automatic Features
+
+When enabled, the bot will:
+- **Auto-Chat**: Naturally join conversations (configurable probability)
+- **AFK Mode**: Tell stories during chat silence
+- **Streamer Mentions**: Respond when your name is mentioned
+- **Emoji React**: Respond with Twitch emojis to user emojis
+- **Hype Mode**: Echo hype commands back to chat
 
 ### Streamelements and Nightbot Integration
 
@@ -223,24 +301,37 @@ $(urlfetch https://your-render-url.onrender.com/gpt/"${user}:${queryescape ${1:}
 Create a custom command with the response:
 
 ```twitch
-!addcom !gptcmd $(urlfetch https://twitch-chatgpt-bot.onrender.com/gpt/$(user):$(querystring))
+!addcom !gptcmd $(urlfetch https://your-render-url.onrender.com/gpt/$(user):$(querystring))
 ```
 
 Replace `your-render-url.onrender.com` with your actual Render URL.
 Replace `gptcmd` with your desired command name.
 Remove `$(user):` if you don't want to include the username in the message sent to OpenAI.
+
+---
+
+## Feature Priority
+
+When multiple features could respond, the bot follows this priority:
+
+1. **Hype Mode** (instant response)
+2. **Streamer Mention** (high priority)
+3. **Emoji React** (15% chance)
+4. **AFK Mode** (when chat is quiet)
+5. **Auto-Chat** (contextual, probability-based)
+
 ---
 
 ## Support
 
-For any issues or questions, please join our [Discord community](https://discord.gg/pcxybrpDx6).
+For any issues or questions, please visit [Gigasnail's Twitch channel](https://www.twitch.tv/gigasnail).
 
-Thank you for using the ChatGPT Twitch Bot! Your support is greatly appreciated. ☕ [Buy me a coffee](https://www.buymeacoffee.com/osetinhas) ☕
+Thank you for using gigarob0t! Your support is greatly appreciated. ☕
 
 ---
 
-### Important Notice
+### Repository
 
-**Cyclic is no longer supported for deployment. Please use Render for deploying this bot.**
+Original framework based on twitch-chatgpt by osetinhas, heavily modified and enhanced for Gigasnail's channel with advanced features and web dashboard.
 
 ---
