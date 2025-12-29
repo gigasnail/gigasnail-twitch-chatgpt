@@ -3,13 +3,13 @@ import express from 'express';
 import fs from 'fs';
 import ws from 'ws';
 import expressWs from 'express-ws';
-// import {job} from './keep_alive.js';  // DISABLED: Not needed on paid Render plans (no spin down)
+import {job} from './keep_alive.js';
 import {OpenAIOperations} from './openai_operations.js';
 import {TwitchBot} from './twitch_bot.js';
 import {TwitchOAuth} from './twitch_oauth.js';
 
-// Start keep alive cron job
-// job.start();  // DISABLED: Not needed on paid Render plans (no spin down)
+// Start keep alive cron job (pings every 14 min to prevent free tier spin down)
+job.start();
 
 // Setup express app
 const app = express();
