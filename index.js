@@ -3,13 +3,13 @@ import express from 'express';
 import fs from 'fs';
 import ws from 'ws';
 import expressWs from 'express-ws';
-import {job} from './keep_alive.js';
+// import {job} from './keep_alive.js';  // DISABLED: Not needed on paid Render plans (no spin down)
 import {OpenAIOperations} from './openai_operations.js';
 import {TwitchBot} from './twitch_bot.js';
 import {TwitchOAuth} from './twitch_oauth.js';
 
 // Start keep alive cron job
-job.start();
+// job.start();  // DISABLED: Not needed on paid Render plans (no spin down)
 
 // Setup express app
 const app = express();
@@ -110,7 +110,8 @@ const channels = CHANNELS.split(',').map(channel => channel.trim());
 const maxLength = 399;
 let fileContext = 'You are a helpful Twitch Chatbot.';
 let lastUserMessage = '';
-let lastResponseTime = 0; // Track the last response time
+let lastCommandResponseTime = 0; // Track last MANUAL command response time (for cooldown)
+let lastAutoResponseTime = 0; // Track last AUTO response time (for bot features)
 
 // Global bot instance
 let bot = null;
@@ -194,15 +195,15 @@ async function initializeBot() {
     }
 
     const currentTime = Date.now();
-    const elapsedTime = (currentTime - lastResponseTime) / 1000; // Time in seconds
+    const elapsedTimeSinceCommand = (currentTime - lastCommandResponseTime) / 1000; // Time since last manual command
 
     if (ENABLE_CHANNEL_POINTS === 'true' && user['msg-id'] === 'highlighted-message') {
         console.log(`Highlighted message: ${message}`);
-        if (elapsedTime < COOLDOWN_DURATION) {
-            bot.say(channel, `Cooldown active. Please wait ${COOLDOWN_DURATION - elapsedTime.toFixed(1)} seconds before sending another message.`);
+        if (elapsedTimeSinceCommand < COOLDOWN_DURATION) {
+            bot.say(channel, `Cooldown active. Please wait ${(COOLDOWN_DURATION - elapsedTimeSinceCommand).toFixed(1)} seconds before sending another message.`);
             return;
         }
-        lastResponseTime = currentTime; // Update the last response time
+        lastCommandResponseTime = currentTime; // Update the last command response time
 
         const response = await openaiOps.make_openai_call(message);
         bot.say(channel, response);
@@ -210,11 +211,11 @@ async function initializeBot() {
 
     const command = commandNames.find(cmd => message.toLowerCase().startsWith(cmd));
     if (command) {
-        if (elapsedTime < COOLDOWN_DURATION) {
-            bot.say(channel, `Cooldown active. Please wait ${COOLDOWN_DURATION - elapsedTime.toFixed(1)} seconds before sending another message.`);
+        if (elapsedTimeSinceCommand < COOLDOWN_DURATION) {
+            bot.say(channel, `Cooldown active. Please wait ${(COOLDOWN_DURATION - elapsedTimeSinceCommand).toFixed(1)} seconds before sending another message.`);
             return;
         }
-        lastResponseTime = currentTime; // Update the last response time
+        lastCommandResponseTime = currentTime; // Update the last command response time
 
         let text = message.slice(command.length).trim();
         if (SEND_USERNAME === 'true') {

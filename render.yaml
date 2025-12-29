@@ -3,7 +3,7 @@ services:
     name: twitch-chatgpt-bot
     runtime: node
     branch: main
-    plan: free
+    plan: starter  # Paid plan - no spin down, 512 MB RAM ($7/mo). Change to 'standard' for 2GB RAM ($25/mo)
     buildCommand: npm install
     startCommand: npm start
     envVars:
